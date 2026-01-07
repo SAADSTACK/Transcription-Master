@@ -1,28 +1,20 @@
 {
   "name": "transcription-master",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "ng serve",
-    "build": "ng build",
-    "preview": "ng serve --configuration=production"
+    "build": "esbuild index.tsx --bundle --outfile=bundle.js --sourcemap --format=esm"
   },
   "dependencies": {
-    "rxjs": "^7.8.2",
-    "@angular/compiler": "20.0.0",
-    "@angular/platform-browser": "20.0.0",
-    "@angular/core": "20.0.0",
     "@angular/common": "20.0.0",
+    "@angular/core": "20.0.0",
+    "@angular/platform-browser": "20.0.0",
     "@google/genai": "^1.34.0",
-    "@angular/build": "20.0.0",
-    "@angular/cli": "20.0.0",
-    "@angular/compiler-cli": "20.0.0",
-    "tailwindcss": "latest"
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@angular/compiler": "20.0.0",
+    "esbuild": "^0.20.2",
+    "typescript": "^5.4.5"
   }
 }

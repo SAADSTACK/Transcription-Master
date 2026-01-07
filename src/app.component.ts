@@ -36,6 +36,7 @@ export class AppComponent implements OnDestroy {
   result: WritableSignal<string | null> = signal(null);
   error: WritableSignal<string | null> = signal(null);
   showFullReport = signal(false);
+  copiedSection = signal<'summary' | 'insights' | null>(null);
   
   // Recording state
   isRecording = signal(false);
@@ -275,6 +276,19 @@ export class AppComponent implements OnDestroy {
     window.URL.revokeObjectURL(url);
   }
 
+  copyToClipboard(text: string, section: 'summary' | 'insights'): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedSection.set(section);
+      setTimeout(() => {
+        if (this.copiedSection() === section) {
+          this.copiedSection.set(null);
+        }
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
+  }
+
   private startLoadingMessages(): void {
     let index = 0;
     this.loadingMessage.set(this.loadingMessages[index]);
@@ -318,14 +332,13 @@ export class AppComponent implements OnDestroy {
       const insightsMatch = text.match(/\*\*QA Insights:\*\*\s*([\s\S]*)/);
 
       if (!metadataMatch || !summaryMatch || !transcriptMatch || !insightsMatch) {
-          if (text.includes('Metadata:') && text.includes('Executive Summary:')) {
-            const metadata = this.extractSection(text, 'Metadata:', 'Executive Summary:');
-            const summary = this.extractSection(text, 'Executive Summary:', 'The Transcript:');
-            const transcript = this.extractSection(text, 'The Transcript:', 'QA Insights:');
-            const insights = this.extractSection(text, 'QA Insights:', null);
-             return { metadata, summary, transcript, insights };
-          }
-          throw new Error('Could not parse the transcription result structure.');
+         this.error.set('The AI response was not in the expected format. Displaying raw output.');
+         return {
+            metadata: 'Could not parse.',
+            summary: 'Could not parse.',
+            transcript: text,
+            insights: 'Could not parse.',
+          };
       }
       
       return {
@@ -345,16 +358,5 @@ export class AppComponent implements OnDestroy {
         insights: 'Could not parse.',
       };
     }
-  }
-
-  private extractSection(text: string, start: string, end: string | null): string {
-    const startIndex = text.indexOf(start) + start.length;
-    let endIndex;
-    if (end) {
-      endIndex = text.indexOf(end, startIndex);
-    } else {
-      endIndex = text.length;
-    }
-    return text.substring(startIndex, endIndex).trim();
   }
 }
