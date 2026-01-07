@@ -1,0 +1,216 @@
+
+<div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 font-sans">
+  <div class="w-full max-w-md mx-auto">
+    @if (apiKey()) {
+      <div class="bg-white rounded-3xl shadow-2xl shadow-gray-200/80 overflow-hidden">
+        
+        <!-- Main View: Record or Upload -->
+        @if (!audioFile() && !isRecording()) {
+          <div class="p-6">
+            <header class="flex justify-between items-center mb-6">
+              <h1 class="text-xl font-bold text-gray-800">Transcribe</h1>
+              <button (click)="logout()" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </header>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <button (click)="startRecording()" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-2xl shadow-lg shadow-purple-200 hover:scale-105 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 017 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h2a1 1 0 100-2h-1v-2.07z" clip-rule="evenodd" />
+                </svg>
+                <span class="font-semibold">Record Live</span>
+              </button>
+               <label for="audio-upload-button" class="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-400 to-cyan-400 text-white rounded-2xl shadow-lg shadow-blue-200 hover:scale-105 transition-transform cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H5.5z" />
+                  <path d="M9 13l3-3m0 0l-3-3m3 3V3" />
+                </svg>
+                <span class="font-semibold">Upload File</span>
+                <input id="audio-upload-button" type="file" class="hidden" accept="audio/*" (change)="onFileChange($event)" />
+              </label>
+            </div>
+            
+            @if(error()){
+              <div class="mt-4 bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm" role="alert">
+                {{ error() }}
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Audio Player View -->
+        @if (audioFile() && !isLoading() && timedTranscript() && !showFullReport()) {
+          <div class="p-6 flex flex-col h-[32rem]">
+            <header class="flex justify-between items-center mb-4 flex-shrink-0">
+              <h1 class="text-xl font-bold text-gray-800 truncate pr-2">{{ fileName() }}</h1>
+              <button (click)="resetState()" class="text-gray-400 hover:text-gray-600">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </header>
+            <div class="flex-shrink-0 mb-4">
+               <audio #audioPlayer [src]="audioUrl()" controls class="w-full" (timeupdate)="handleTimeUpdate($event)"></audio>
+            </div>
+            <div class="flex-grow bg-gray-100 rounded-xl p-3 overflow-y-auto mb-4 min-h-0 space-y-1">
+              @if (timedTranscript()?.length) {
+                @for (line of timedTranscript(); track $index) {
+                  <p 
+                    class="text-gray-800 leading-relaxed transition-all duration-200 p-2 rounded-md text-sm"
+                    [class.bg-purple-100]="line === currentSubtitleLine()"
+                    [class.text-purple-900]="line === currentSubtitleLine()"
+                    [class.font-semibold]="line === currentSubtitleLine()">
+                    <span class="text-gray-500 font-mono mr-2">[{{ formatTime(line.time) }}]</span>{{ line.text }}
+                  </p>
+                }
+              } @else {
+                <p class="text-gray-500 text-center p-4">No transcript available to display.</p>
+              }
+            </div>
+            <button (click)="showFullReport.set(true)" class="flex-shrink-0 w-full py-3 text-base font-semibold text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-md hover:scale-105 transition-transform">
+              View Full Report
+            </button>
+          </div>
+        }
+
+        <!-- Recording View -->
+        @if(isRecording()){
+          <div class="p-6 flex flex-col h-[32rem]">
+            <div class="flex-shrink-0 flex flex-col items-center">
+              <h2 class="text-lg font-bold text-gray-400 mb-2">Recording...</h2>
+              <p class="text-5xl font-mono font-bold text-gray-800 mb-4">{{ formatTime(recordingTime()) }}</p>
+              <div class="w-full h-10 flex justify-center items-center space-x-1 mb-4">
+                <span class="w-1.5 h-3 bg-purple-300 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.1s]"></span>
+                <span class="w-1.5 h-6 bg-purple-400 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.2s]"></span>
+                <span class="w-1.5 h-10 bg-purple-500 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.3s]"></span>
+                <span class="w-1.5 h-8 bg-pink-500 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.4s]"></span>
+                <span class="w-1.5 h-12 bg-pink-400 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.5s]"></span>
+                <span class="w-1.5 h-8 bg-pink-500 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.6s]"></span>
+                <span class="w-1.5 h-10 bg-purple-500 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.7s]"></span>
+                <span class="w-1.5 h-6 bg-purple-400 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.8s]"></span>
+                <span class="w-1.5 h-3 bg-purple-300 rounded-full animate-[waviy_1s_infinite] [animation-delay:0.9s]"></span>
+              </div>
+              <style>
+                  @keyframes waviy { 0%, 40%, 100% { transform: scaleY(0.4); } 20% { transform: scaleY(1); } }
+              </style>
+            </div>
+            
+            <div class="flex-grow bg-gray-100 rounded-xl p-4 overflow-y-auto mb-4 min-h-0">
+              <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ realtimeTranscript() }}<span class="inline-block w-2 h-4 bg-gray-600 animate-pulse ml-1"></span></p>
+            </div>
+        
+            <button (click)="stopRecording()" class="flex-shrink-0 w-full py-3 flex items-center justify-center bg-red-500 text-white rounded-xl shadow-lg shadow-red-200 font-semibold text-lg hover:bg-red-600 transition-colors">
+              Stop & Finalize
+            </button>
+          </div>
+        }
+
+        <!-- Loading View -->
+        @if (isLoading()) {
+          <div class="p-8 flex flex-col items-center justify-center h-96">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">{{ isRecording() ? 'Finalizing Transcript...' : 'Transcribing Audio...' }}</h2>
+            <div class="relative w-32 h-32 flex items-center justify-center mb-4">
+              <svg class="absolute w-full h-full text-gray-200" fill="none" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="10"></circle>
+              </svg>
+              <svg class="absolute w-full h-full text-purple-500 animate-spin-slow" style="transform: rotate(-90deg);" fill="none" viewBox="0 0 100 100">
+                 <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-dasharray="282.74" stroke-dashoffset="212.05"></circle>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+              </svg>
+            </div>
+             <style>
+                @keyframes spin-slow { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
+                .animate-spin-slow { animation: spin-slow 2s linear infinite; }
+             </style>
+            <p class="text-gray-600 text-center">{{ loadingMessage() }}</p>
+          </div>
+        }
+
+        <!-- Result View -->
+        @if (parsedResult(); as res; and showFullReport()) {
+          <div class="animate-fade-in p-6">
+            <header class="flex justify-between items-center mb-6">
+              <h1 class="text-xl font-bold text-gray-800">Transcript Report</h1>
+              <button (click)="showFullReport.set(false)" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+              </button>
+            </header>
+
+            <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+              <div class="bg-gray-50 rounded-xl p-4">
+                <h2 class="text-sm font-bold text-purple-600 mb-2">Metadata</h2>
+                <p class="text-gray-600 whitespace-pre-wrap text-sm">{{ res.metadata }}</p>
+              </div>
+
+              <div class="bg-gray-50 rounded-xl p-4">
+                <h2 class="text-sm font-bold text-purple-600 mb-2">Summary</h2>
+                <p class="text-gray-600 leading-relaxed text-sm">{{ res.summary }}</p>
+              </div>
+
+              <div class="bg-gray-50 rounded-xl p-4">
+                <h2 class="text-sm font-bold text-purple-600 mb-2">Transcript</h2>
+                <div class="text-gray-700 whitespace-pre-wrap font-mono text-xs leading-5">{{ res.transcript }}</div>
+              </div>
+
+              <div class="bg-gray-50 rounded-xl p-4">
+                <h2 class="text-sm font-bold text-purple-600 mb-2">Insights</h2>
+                <div class="text-gray-600 whitespace-pre-wrap text-sm">{{ res.insights }}</div>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <button (click)="downloadTranscription()" class="w-full py-3 text-base font-semibold text-white bg-gradient-to-r from-blue-400 to-cyan-400 rounded-lg shadow-md hover:scale-105 transition-transform flex items-center justify-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                <span>Download .txt</span>
+              </button>
+            </div>
+
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Login View -->
+      <div class="bg-white rounded-3xl shadow-2xl shadow-gray-200/80 p-8 text-center animate-fade-in">
+        <div class="mx-auto w-20 h-20 mb-6 flex items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Authentication</h2>
+        <p class="text-gray-500 mb-6">Please enter your Gemini API Key to begin.</p>
+        <form (submit)="$event.preventDefault(); handleLogin()">
+          <div class="flex flex-col space-y-4">
+            <input 
+              type="password" 
+              placeholder="Enter your Gemini API Key"
+              [value]="apiKeyInput()"
+              (input)="apiKeyInput.set($event.target.value)"
+              class="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent">
+            <button 
+              type="submit"
+              class="w-full py-3 text-base font-semibold text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-md hover:scale-105 transition-transform">
+              Continue
+            </button>
+          </div>
+        </form>
+         @if (error()) {
+          <p class="text-red-500 text-sm mt-4">{{error()}}</p>
+         }
+        <p class="text-xs text-gray-400 mt-6">Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="font-semibold hover:text-purple-500">Google AI Studio</a>.</p>
+      </div>
+    }
+
+    <footer class="text-center py-6 text-gray-400 text-sm">
+      <p>Powered by Gemini</p>
+    </footer>
+  </div>
+</div>

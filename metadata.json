@@ -1,0 +1,7 @@
+{
+  "name": "Transcription Master",
+  "description": "Upload audio files to receive a detailed, structured transcription and linguistic analysis powered by Gemini. This app provides 'clean read' or 'verbatim' options and generates an executive summary, a full transcript, and actionable insights.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
